@@ -1,7 +1,7 @@
 # ppspider_docker_deploy
 This project is used to show you how to deploy an application using docker.   
 
-On the docker host, run the following:    
+On the docker host, run the following to build ppspider runtime environment.  
 ```shell script
 # build ppspider_env image
 echo -e '
@@ -18,14 +18,24 @@ RUN echo "${ROOT_PASSWORD}" | passwd --stdin root \
 docker build -t ppspider_env .  
 # create ppspider_env container named my_ppspider_env, expose webUi port 9000, mongodb port 27017
 docker run -itd -e "container=docker" --network=host -p 9000:9000 -p 27017:27017 --name my_ppspider_env ppspider_env /usr/sbin/init
+```
 
-
-# connect to my_ppspider_env by ssh
-# deploy project
-ppspiderWorkplace=/root/ppspider
+connect to my_ppspider_env by ssh and deploy project.  
+```shell script
 ppspiderProjectRep=https://github.com/xiyuan-fengyu/ppspider_docker_deploy
 ppspiderStartCmd="node lib/App.js"
 ppspiderProject=`basename $ppspiderProjectRep .git`
+
+if id -u ppspider >/dev/null 2>&1; then
+    echo "user(ppspider) existed"
+else
+    # chromium cannot work with root user
+    useradd ppspider
+fi
+if [ `whoami` != "ppspider" ];then
+    su ppspider
+fi
+ppspiderWorkplace=/home/ppspider
 
 cd $ppspiderWorkplace
 if [[ -d "$ppspiderWorkplace/$ppspiderProject" ]]; then
@@ -40,6 +50,9 @@ cd $ppspiderProject
 
 # create update.sh
 echo -e '
+if [ `whoami` != "ppspider" ];then
+    su ppspider
+fi
 cd $(cd `dirname $0`; pwd)
 
 # update
@@ -90,6 +103,9 @@ chmod +x stop.sh
 
 # create start.sh
 echo -e '
+if [ `whoami` != "ppspider" ];then
+    su ppspider
+fi
 cd $(cd `dirname $0`; pwd)
 ./stop.sh
 # log backup
